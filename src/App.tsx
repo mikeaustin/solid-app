@@ -1,9 +1,11 @@
-import { createSignal, createEffect, splitProps, Component } from 'solid-js';
+import { createSignal, createEffect, splitProps, Component, ComponentProps } from 'solid-js';
+
+import View from './components/view';
+import Text from './components/text';
 
 import solidLogo from './assets/solid.svg';
 import viteLogo from '/vite.svg';
 
-import styles from './App.module.scss';
 import './App.css';
 
 type Point = {
@@ -11,17 +13,17 @@ type Point = {
   clientY: number;
 };
 
-type ViewProps = {
-  absolute?: boolean;
-};
+type HandleProps = {
+  onDragStart?: () => void;
+  onDragMove?: (x: number, y: number) => void;
+} & ComponentProps<typeof View>;
 
-// const View: Component<{ absolute?: boolean; }> = (props) => {
-function View(props: ViewProps) {
-  const [local, restProps] = splitProps(props, ['absolute']);
+function Handle(props: HandleProps) {
+  const [localProps, restProps] = splitProps(props, ['onDragStart', 'onDragMove']);
 
   const [firstPoint, setFirstPoint] = createSignal<Point | null>(null);
 
-  let ref: HTMLDivElement | undefined;
+  // let ref: HTMLDivElement | undefined;
 
   const handlePointerDown = (event: PointerEvent) => {
     const target = event.currentTarget as HTMLElement;
@@ -29,17 +31,21 @@ function View(props: ViewProps) {
     target.setPointerCapture(event.pointerId);
 
     setFirstPoint({
-      clientX: event.clientX - target.offsetLeft,
-      clientY: event.clientY - target.offsetTop,
+      clientX: event.clientX,
+      clientY: event.clientY,
     });
+
+    localProps.onDragStart?.();
   };
 
   const handlePointerMove = (event: PointerEvent) => {
     const _firstPoint = firstPoint();
 
-    if (ref && _firstPoint) {
-      ref.style.left = `${event.clientX - _firstPoint.clientX}px`;
-      ref.style.top = `${event.clientY - _firstPoint.clientY}px`;
+    if (_firstPoint) {
+      localProps.onDragMove?.(
+        event.clientX - _firstPoint.clientX,
+        event.clientY - _firstPoint.clientY
+      );
     }
   };
 
@@ -47,29 +53,60 @@ function View(props: ViewProps) {
     setFirstPoint(null);
   };
 
-  const classList = {
-    [styles.absolute]: local.absolute,
-  };
-
   return (
-    <div
-      ref={ref}
-      class={styles.View}
-      classList={classList}
+    <View
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      {...props}
     />
   );
-};
+}
+
+function Window() {
+  let ref: HTMLDivElement | undefined;
+
+  const [firstPoint, setFirstPoint] = createSignal<Point | null>(null);
+
+  const handleDragStart = () => {
+    if (ref) {
+      setFirstPoint({
+        clientX: ref.offsetLeft,
+        clientY: ref.offsetTop,
+      });
+    }
+  };
+
+  const handleDragMove = (x: number, y: number) => {
+    const _firstPoint = firstPoint();
+
+    if (ref && _firstPoint) {
+      ref.style.left = `${_firstPoint.clientX + x}px`;
+      ref.style.top = `${_firstPoint.clientY + y}px`;
+    }
+  };
+
+  return (
+    <View ref={ref} absolute width={500} height={300}>
+      <Handle fillColor="red-5" height={30} onDragStart={handleDragStart} onDragMove={handleDragMove} />
+      <View flex fillColor="green-5">
+        <Text>Hello</Text>
+      </View>
+    </View>
+  );
+}
 
 function App() {
   const [count, setCount] = createSignal(0);
 
   return (
     <>
-      <View absolute />
-      <View absolute />
+      <Window />
+      <Window />
+      {/* <Handle absolute fillColor="blue-5" />
+      <Handle absolute fillColor="green-5" /> */}
+      <Text>Hello</Text>
+
       <div>
         <a href="https://vitejs.dev" target="_blank">
           <img src={viteLogo} class="logo" alt="Vite logo" />

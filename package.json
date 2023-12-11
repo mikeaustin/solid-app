@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "open-color": "^1.9.1",
     "sass": "^1.69.5",
     "solid-js": "^1.8.7"
   },
